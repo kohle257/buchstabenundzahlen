@@ -13,6 +13,7 @@
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     @keyframes pulse-ring {
       0% { transform: scale(1); opacity: 0.95; }
@@ -58,9 +59,9 @@
   </header>
 
   <!-- Zeichenfläche -->
-  <main class="relative flex-1 w-full max-w-xl my-2 bg-white rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
+  <main id="drawContainer" class="relative flex-1 w-full max-w-xl my-2 bg-white rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
     
-    <svg id="letterSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 500">
+    <svg id="letterSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
@@ -80,7 +81,7 @@
     <canvas id="paintCanvas" class="absolute inset-0 w-full h-full z-10"></canvas>
 
     <!-- Erfolgs-Banner -->
-    <div id="successBanner" class="hidden absolute z-30 inset-0 bg-emerald-500/25 backdrop-blur-sm flex flex-col items-center justify-center">
+    <div id="successBanner" class="hidden absolute z-30 inset-0 bg-emerald-500/25 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none">
       <span class="text-7xl animate-bounce">⭐</span>
       <h2 class="text-3xl font-black text-emerald-800 mt-2">Klasse gemacht!</h2>
     </div>
@@ -296,18 +297,19 @@
     let currentLetter = null;
     let currentColor = '#f43f5e';
     let isDrawing = false;
-    let lastX = 0, lastY = 0;
+    let lastDrawX = 0, lastDrawY = 0;
+    let lastSvgX = 0, lastSvgY = 0;
 
-    // Stroke-Tracking
     let strokeData = [];
     let currentStrokeIndex = 0;
     let completed = false;
     let hasUserInteracted = false;
 
-    // Großzügige Toleranz für Kinderhände
-    const ZONE_RADIUS = 46;
+    // Großzügige Toleranz für Mobilgeräte (SVG-Punkte)
+    const ZONE_RADIUS = 54;
 
     const canvas = document.getElementById('paintCanvas');
+    const svgEl = document.getElementById('letterSvg');
     const ctx = canvas.getContext('2d');
     const guideLayer = document.getElementById('guideLayer');
     const targetLayer = document.getElementById('targetLayer');
@@ -346,6 +348,38 @@
       ctx.scale(dpr, dpr);
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
+    }
+
+    // Exakte SVG-Koordinaten per Matrix (eliminiert Handy-Skalierungsfehler vollständig)
+    function getPoint(e) {
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const rect = canvas.getBoundingClientRect();
+
+      const drawX = clientX - rect.left;
+      const drawY = clientY - rect.top;
+
+      let pt = svgEl.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svgEl.getScreenCTM();
+      if (ctm) {
+        pt = pt.matrixTransform(ctm.inverse());
+      } else {
+        pt.x = (drawX / rect.width) * 400;
+        pt.y = (drawY / rect.height) * 500;
+      }
+
+      return { drawX, drawY, svgX: pt.x, svgY: pt.y };
+    }
+
+    // Minimalabstand eines Punktes zu einem Streckensegment
+    function distToSegment(px, py, x1, y1, x2, y2) {
+      const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+      if (l2 === 0) return Math.hypot(px - x1, py - y1);
+      let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
     }
 
     function calculateBadgePositions(strokes) {
@@ -415,7 +449,7 @@
         arrow.setAttribute('id', `arrow-${idx}`);
         guideLayer.appendChild(arrow);
 
-        // Pfad vermessen & Start-/Endkoordinaten ermitteln
+        // Punkte berechnen
         const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
@@ -423,7 +457,6 @@
         const startPt = pathEl.getPointAtLength(0);
         const endPt = pathEl.getPointAtLength(len);
 
-        // Checkpoints für Mindest-Verbindung (nur 6-8 Stützpunkte)
         const pts = [];
         const steps = 7;
         for (let i = 0; i <= steps; i++) {
@@ -438,7 +471,7 @@
           finished: false
         });
 
-        // Visuelle ZIEL-Markierung (Zielfahne / roter Zielkreis)
+        // Zielfahne
         const targetGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         targetGroup.setAttribute('id', `target-${idx}`);
         targetGroup.setAttribute('class', idx === 0 ? 'badge-shadow' : 'hidden');
@@ -462,7 +495,7 @@
         targetGroup.appendChild(flagText);
         targetLayer.appendChild(targetGroup);
 
-        // Visuelle START-Markierung (Grüner Ziffern-Badge)
+        // Start-Badge
         const pos = badgePositions[idx];
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'badge-shadow');
@@ -539,7 +572,7 @@
           } else if (idx < currentStrokeIndex) {
             pulse.classList.add('hidden');
             circle.setAttribute('fill', '#10b981');
-            target.classList.add('hidden'); // erledigtes Ziel ausblenden
+            target.classList.add('hidden');
           } else {
             pulse.classList.add('hidden');
             circle.setAttribute('fill', '#94a3b8');
@@ -551,17 +584,6 @@
       }
     }
 
-    function getCanvasCoordinates(e) {
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const drawX = clientX - rect.left;
-      const drawY = clientY - rect.top;
-      const svgX = (drawX / rect.width) * 400;
-      const svgY = (drawY / rect.height) * 500;
-      return { drawX, drawY, svgX, svgY };
-    }
-
     function startDraw(e) {
       if (!hasUserInteracted) {
         hasUserInteracted = true;
@@ -570,82 +592,87 @@
 
       if (completed) return;
       isDrawing = true;
-      const pos = getCanvasCoordinates(e);
-      lastX = pos.drawX;
-      lastY = pos.drawY;
-      trackProgress(pos.svgX, pos.svgY);
+      const pos = getPoint(e);
+      lastDrawX = pos.drawX;
+      lastDrawY = pos.drawY;
+      lastSvgX = pos.svgX;
+      lastSvgY = pos.svgY;
+
+      trackSegment(pos.svgX, pos.svgY, pos.svgX, pos.svgY);
     }
 
     function draw(e) {
       if (!isDrawing || completed) return;
       e.preventDefault();
-      const pos = getCanvasCoordinates(e);
+      const pos = getPoint(e);
 
-      // Pinselzug
+      // Pinselspur
       ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
+      ctx.moveTo(lastDrawX, lastDrawY);
       ctx.lineTo(pos.drawX, pos.drawY);
       ctx.strokeStyle = currentColor;
       ctx.lineWidth = 32;
       ctx.stroke();
 
-      lastX = pos.drawX;
-      lastY = pos.drawY;
+      trackSegment(lastSvgX, lastSvgY, pos.svgX, pos.svgY);
 
-      trackProgress(pos.svgX, pos.svgY);
+      lastDrawX = pos.drawX;
+      lastDrawY = pos.drawY;
+      lastSvgX = pos.svgX;
+      lastSvgY = pos.svgY;
     }
 
     function stopDraw() {
       isDrawing = false;
     }
 
-    // Kernlogik: Wurden Start und Zielbereich des Strichs sauber verbunden?
-    function trackProgress(x, y) {
+    // Interpolierte Streckenprüfung – verhindert Überspringen bei schnellen Fingerbewegungen
+    function trackSegment(x1, y1, x2, y2) {
       if (completed || !strokeData[currentStrokeIndex]) return;
 
       const current = strokeData[currentStrokeIndex];
 
-      // 1. Startzone registrieren
+      // 1. Startzone
       if (!current.start.touched) {
-        if (Math.hypot(current.start.x - x, current.start.y - y) <= ZONE_RADIUS) {
+        if (distToSegment(current.start.x, current.start.y, x1, y1, x2, y2) <= ZONE_RADIUS) {
           current.start.touched = true;
         }
       }
 
-      // 2. Wegpunkte dazwischen registrieren
+      // 2. Zwischenpunkte
       current.checkpoints.forEach(pt => {
-        if (Math.hypot(pt.x - x, pt.y - y) <= ZONE_RADIUS) {
+        if (!pt.hit && distToSegment(pt.x, pt.y, x1, y1, x2, y2) <= ZONE_RADIUS) {
           pt.hit = true;
         }
       });
 
-      // 3. Zielzone registrieren
-      const distToEnd = Math.hypot(current.end.x - x, current.end.y - y);
-      if (distToEnd <= ZONE_RADIUS) {
+      // 3. Zielzone
+      if (distToSegment(current.end.x, current.end.y, x1, y1, x2, y2) <= ZONE_RADIUS) {
         current.end.touched = true;
       }
 
-      // 4. Verbindungsprüfung: Start berührt + Ziel berührt + mind. 55% des Pfads gestreift
-      const hitPoints = current.checkpoints.filter(p => p.hit).length;
-      const middleCoverage = hitPoints / current.checkpoints.length;
+      // 4. Robuste Fortschrittsprüfung:
+      // Start + Ziel berührt und mind. 40% abgedeckt ODER 70% der Gesamtspur gemalt
+      const hitCount = current.checkpoints.filter(p => p.hit).length;
+      const coverage = hitCount / current.checkpoints.length;
+      const finishedViaTarget = current.start.touched && current.end.touched && coverage >= 0.40;
+      const finishedViaCoverage = coverage >= 0.70;
 
-      if (current.start.touched && current.end.touched && middleCoverage >= 0.55) {
+      if (finishedViaTarget || finishedViaCoverage) {
         current.finished = true;
 
         if (currentStrokeIndex < currentLetter.strokes.length - 1) {
-          // Direkt und nahtlos zum Folgestrich wechseln (ohne Absetzen!)
           currentStrokeIndex++;
           updateStepUI();
 
-          // Neuen Strich sofort mit der aktuellen Fingerposition prüfen (wichtig für Bogen 1 -> Bogen 2)
+          // Nahtloser Übergang zum nächsten Strich ohne Absetzen
           if (strokeData[currentStrokeIndex]) {
             const next = strokeData[currentStrokeIndex];
-            if (Math.hypot(next.start.x - x, next.start.y - y) <= ZONE_RADIUS) {
+            if (distToSegment(next.start.x, next.start.y, x1, y1, x2, y2) <= ZONE_RADIUS) {
               next.start.touched = true;
             }
           }
         } else {
-          // Alle Striche erfolgreich verbunden!
           completed = true;
           updateStepUI();
           triggerSuccess();
@@ -699,7 +726,7 @@
       }
     }
 
-    // Touch & Maus Listener
+    // Touch- & Maus-Events
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stopDraw);
