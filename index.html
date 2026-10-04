@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Buchstaben Lernen A-Z</title>
+  <title>Buchstaben Lernen</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -32,15 +32,15 @@
 </head>
 <body class="bg-sky-50 h-screen w-screen flex flex-col justify-between items-center p-3 sm:p-4 overflow-hidden select-none font-sans">
 
-  <!-- Header -->
+  <!-- Kopfbereich -->
   <header class="w-full max-w-xl flex justify-between items-center z-20">
     <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform" title="Vorlesen">
-      🔊 <span id="letterLabel" class="text-2xl font-extrabold flex items-center gap-1">A 🍎</span>
+      🔊 <span id="letterLabel" class="text-2xl font-extrabold flex items-center gap-1">L 🪜</span>
     </button>
 
     <div class="flex-1 mx-3 bg-white/90 p-2 rounded-2xl shadow border border-sky-100 flex flex-col gap-1">
       <div class="flex justify-between text-xs font-bold text-sky-800 px-1">
-        <span>Strich <span id="currentStrokeNum">1</span> / <span id="totalStrokesNum">3</span></span>
+        <span>Strich <span id="currentStrokeNum">1</span> / <span id="totalStrokesNum">2</span></span>
         <span id="percentLabel">0%</span>
       </div>
       <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
@@ -49,8 +49,8 @@
     </div>
 
     <div class="flex gap-2">
-      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Neu anfangen">
-        🗑️️
+      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Neu malen">
+        🗑
       </button>
       <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Nächster Buchstabe">
         ➡️
@@ -58,7 +58,7 @@
     </div>
   </header>
 
-  <!-- Zeichenbereich -->
+  <!-- Zeichenfläche -->
   <main class="relative flex-1 w-full max-w-xl my-2 bg-white rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
     
     <svg id="letterSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 500">
@@ -79,14 +79,7 @@
     <!-- Erfolgs-Banner -->
     <div id="successBanner" class="hidden absolute z-30 inset-0 bg-emerald-500/25 backdrop-blur-sm flex flex-col items-center justify-center">
       <span class="text-7xl animate-bounce">⭐</span>
-      <h2 class="text-3xl font-black text-emerald-800 mt-2">Super gemacht!</h2>
-    </div>
-
-    <!-- Kritzel-Warnung -->
-    <div id="scribbleWarning" class="hidden absolute z-30 inset-0 bg-amber-500/25 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-      <span class="text-6xl animate-pulse">✏️</span>
-      <h2 class="text-2xl font-black text-amber-900 mt-2">Hoppla, zu viel gekritzelt!</h2>
-      <p class="text-amber-800 font-semibold mt-1">Versuche genau auf der Spur zu bleiben.</p>
+      <h2 class="text-3xl font-black text-emerald-800 mt-2">Klasse gemacht!</h2>
     </div>
   </main>
 
@@ -102,8 +95,14 @@
   </footer>
 
   <script>
-    // Das vollständige Alphabet A-Z mit definierten Strichen und Beispielen
     const LETTERS = [
+      {
+        char: 'L', word: 'L wie Leiter', icon: '🪜',
+        strokes: [
+          { d: 'M 140 80 L 140 420', start: [140, 80] },
+          { d: 'M 140 420 L 270 420', start: [140, 420] }
+        ]
+      },
       {
         char: 'A', word: 'A wie Apfel', icon: '🍎',
         strokes: [
@@ -184,13 +183,6 @@
           { d: 'M 130 80 L 130 420', start: [130, 80] },
           { d: 'M 270 100 L 130 260', start: [270, 100] },
           { d: 'M 150 240 L 275 420', start: [150, 240] }
-        ]
-      },
-      {
-        char: 'L', word: 'L wie Leiter', icon: '🪜',
-        strokes: [
-          { d: 'M 140 80 L 140 420', start: [140, 80] },
-          { d: 'M 140 420 L 270 420', start: [140, 420] }
         ]
       },
       {
@@ -306,13 +298,11 @@
     let strokeCheckpoints = [];
     let currentStrokeIndex = 0;
     let completed = false;
+    let hasUserInteracted = false;
 
-    // Strengere Parameter gegen vorschnellen Erfolg & Kritzeln
-    const REQUIRED_COVERAGE = 0.88; // 88% Abdeckung erforderlich
-    const HIT_RADIUS = 34;          // Toleranzradius am Finger
-    const MAX_ALLOWED_OFFTRACK_RATIO = 0.35;
-    let validTouchPoints = 0;
-    let offTrackPoints = 0;
+    // Entspannte, kleinkindgerechte Toleranz wie am Anfang
+    const HIT_RADIUS = 40;
+    const COMPLETION_RATIO = 0.75; // 75% Abdeckung reicht völlig aus
 
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
@@ -324,39 +314,24 @@
     const progressBar = document.getElementById('progressBar');
     const percentLabel = document.getElementById('percentLabel');
     const successBanner = document.getElementById('successBanner');
-    const scribbleWarning = document.getElementById('scribbleWarning');
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    function playSound(type) {
+    function playSound() {
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      if (type === 'cheer') {
-        const notes = [261.63, 329.63, 392.00, 523.25];
-        notes.forEach((freq, i) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.12);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.35);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(audioCtx.currentTime + i * 0.12);
-          osc.stop(audioCtx.currentTime + i * 0.12 + 0.4);
-        });
-      } else if (type === 'oops') {
+      const notes = [261.63, 329.63, 392.00, 523.25];
+      notes.forEach((freq, i) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.35);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.32);
-      }
+        osc.start(audioCtx.currentTime + i * 0.12);
+        osc.stop(audioCtx.currentTime + i * 0.12 + 0.4);
+      });
     }
 
     function resizeCanvas() {
@@ -369,7 +344,6 @@
       ctx.lineJoin = 'round';
     }
 
-    // Berechnet Badges mit horizontalem Versatz für deckungsgleiche Startpunkte
     function calculateBadgePositions(strokes) {
       const positions = [];
       const threshold = 35;
@@ -402,11 +376,8 @@
       letterLabel.textContent = `${letter.char} ${letter.icon || ''}`;
       currentStrokeIndex = 0;
       completed = false;
-      validTouchPoints = 0;
-      offTrackPoints = 0;
 
       successBanner.classList.add('hidden');
-      scribbleWarning.classList.add('hidden');
       clearCanvas();
 
       totalStrokesNum.textContent = letter.strokes.length;
@@ -444,7 +415,7 @@
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
         const len = pathEl.getTotalLength();
-        const steps = Math.max(8, Math.floor(len / 18));
+        const steps = Math.max(6, Math.floor(len / 22));
         const pts = [];
         for (let i = 0; i <= steps; i++) {
           const pt = pathEl.getPointAtLength((i / steps) * len);
@@ -452,7 +423,7 @@
         }
         strokeCheckpoints.push(pts);
 
-        // Badge
+        // Badges mit Zahlen
         const pos = badgePositions[idx];
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'badge-shadow');
@@ -554,12 +525,17 @@
     }
 
     function startDraw(e) {
+      if (!hasUserInteracted) {
+        hasUserInteracted = true;
+        if (currentLetter) speak(currentLetter.word || currentLetter.char);
+      }
+
       if (completed) return;
       isDrawing = true;
       const pos = getCanvasCoordinates(e);
       lastX = pos.drawX;
       lastY = pos.drawY;
-      evaluateTouchPoint(pos.svgX, pos.svgY);
+      testHitAndAdvance(pos.svgX, pos.svgY);
     }
 
     function draw(e) {
@@ -567,66 +543,53 @@
       e.preventDefault();
       const pos = getCanvasCoordinates(e);
 
+      // Pinselstrich zeichnen
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(pos.drawX, pos.drawY);
       ctx.strokeStyle = currentColor;
-      ctx.lineWidth = 30;
+      ctx.lineWidth = 32;
       ctx.stroke();
 
       lastX = pos.drawX;
       lastY = pos.drawY;
 
-      evaluateTouchPoint(pos.svgX, pos.svgY);
+      testHitAndAdvance(pos.svgX, pos.svgY);
     }
 
     function stopDraw() {
       if (!isDrawing) return;
       isDrawing = false;
-      checkStrokeProgress();
+      checkCompletion();
     }
 
-    // Strengere Prüfung: Gesamtabdeckung + Erreichen des Endpunkts
-    function isStrokeTrulyFinished(activePts) {
-      const hitCount = activePts.filter(p => p.hit).length;
-      const coverage = hitCount / activePts.length;
-
-      // Die letzten 2-3 Punkte (Zielbereich) müssen ebenfalls berührt worden sein
-      const tailCount = Math.max(2, Math.floor(activePts.length * 0.2));
-      const tailPoints = activePts.slice(-tailCount);
-      const tailReached = tailPoints.some(p => p.hit);
-
-      return (coverage >= REQUIRED_COVERAGE && tailReached);
-    }
-
-    function evaluateTouchPoint(x, y) {
+    // Reines Treffer-Tracking ohne Meckern/Abbruch, mit nahtlosem Weitermalen
+    function testHitAndAdvance(x, y) {
       if (completed || !strokeCheckpoints[currentStrokeIndex]) return;
 
       const activePts = strokeCheckpoints[currentStrokeIndex];
-      let minDistance = Infinity;
 
       activePts.forEach(pt => {
-        const d = Math.hypot(pt.x - x, pt.y - y);
-        if (d < minDistance) minDistance = d;
-        if (d < HIT_RADIUS) {
+        if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
           pt.hit = true;
         }
       });
 
-      if (minDistance <= 50) {
-        validTouchPoints++;
-      } else {
-        offTrackPoints++;
-      }
-
-      // Prüfen, ob der Strich WIRKLICH bis zum Ende gemalt wurde
-      if (isStrokeTrulyFinished(activePts)) {
+      // Prüfen, ob der aktive Strich zu mind. 75% abgedeckt ist
+      const hitCount = activePts.filter(p => p.hit).length;
+      if (hitCount / activePts.length >= COMPLETION_RATIO) {
         if (currentStrokeIndex < currentLetter.strokes.length - 1) {
+          // Nahtloser Übergang zum Folgestrich ohne Absetzen
           currentStrokeIndex++;
-          validTouchPoints = 0;
-          offTrackPoints = 0;
           updateStepUI();
-          testHitOnCurrentStroke(x, y);
+          // Neuen Folgestrich direkt mit demselben Punkt prüfen
+          if (strokeCheckpoints[currentStrokeIndex]) {
+            strokeCheckpoints[currentStrokeIndex].forEach(pt => {
+              if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
+                pt.hit = true;
+              }
+            });
+          }
         } else {
           completed = true;
           updateStepUI();
@@ -636,49 +599,15 @@
       }
 
       updateStepUI();
-
-      // Kritzel-Bremse
-      const totalSamples = validTouchPoints + offTrackPoints;
-      if (totalSamples > 30) {
-        const offRatio = offTrackPoints / totalSamples;
-        if (offRatio > MAX_ALLOWED_OFFTRACK_RATIO) {
-          handleScribbleAbort();
-        }
-      }
     }
 
-    function testHitOnCurrentStroke(x, y) {
-      if (!strokeCheckpoints[currentStrokeIndex]) return;
-      strokeCheckpoints[currentStrokeIndex].forEach(pt => {
-        if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
-          pt.hit = true;
-        }
-      });
-    }
-
-    function handleScribbleAbort() {
-      isDrawing = false;
-      playSound('oops');
-      scribbleWarning.classList.remove('hidden');
-
-      setTimeout(() => {
-        scribbleWarning.classList.add('hidden');
-        clearCanvas();
-        if (strokeCheckpoints[currentStrokeIndex]) {
-          strokeCheckpoints[currentStrokeIndex].forEach(p => p.hit = false);
-        }
-        validTouchPoints = 0;
-        offTrackPoints = 0;
-        updateStepUI();
-      }, 1600);
-    }
-
-    function checkStrokeProgress() {
+    function checkCompletion() {
       if (completed) return;
       const activePts = strokeCheckpoints[currentStrokeIndex];
       if (!activePts) return;
 
-      if (isStrokeTrulyFinished(activePts)) {
+      const hitCount = activePts.filter(p => p.hit).length;
+      if (hitCount / activePts.length >= COMPLETION_RATIO) {
         if (currentStrokeIndex === currentLetter.strokes.length - 1) {
           completed = true;
           updateStepUI();
@@ -689,7 +618,7 @@
 
     function triggerSuccess() {
       successBanner.classList.remove('hidden');
-      playSound('cheer');
+      playSound();
 
       if (window.confetti) {
         confetti({
@@ -703,7 +632,7 @@
 
       setTimeout(() => {
         loadLetter(getRandomLetter());
-      }, 2600);
+      }, 2500);
     }
 
     function getRandomLetter() {
@@ -717,8 +646,6 @@
       if (strokeCheckpoints[currentStrokeIndex]) {
         strokeCheckpoints[currentStrokeIndex].forEach(p => p.hit = false);
       }
-      validTouchPoints = 0;
-      offTrackPoints = 0;
       updateStepUI();
     }
 
@@ -762,7 +689,8 @@
 
     window.addEventListener('load', () => {
       resizeCanvas();
-      loadLetter(getRandomLetter());
+      // Startet direkt mit L wie Leiter als erstem Buchstaben
+      loadLetter(LETTERS[0]);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       }
