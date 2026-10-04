@@ -7,7 +7,6 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Konfetti für echten Erfolg -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     body {
@@ -17,10 +16,10 @@
     }
     @keyframes pulse-ring {
       0% { transform: scale(1); opacity: 0.95; }
-      50% { transform: scale(1.35); opacity: 0.35; }
+      50% { transform: scale(1.3); opacity: 0.4; }
       100% { transform: scale(1); opacity: 0.95; }
     }
-    .active-badge-pulse {
+    .active-pulse {
       transform-box: fill-box;
       transform-origin: center;
       animation: pulse-ring 1.3s infinite ease-in-out;
@@ -70,7 +69,11 @@
           <path d="M 0 1 L 10 5 L 0 9 z" fill="#cbd5e1" />
         </marker>
       </defs>
+      <!-- Leitlinien -->
       <g id="guideLayer"></g>
+      <!-- Start- und Ziel-Markierungen -->
+      <g id="targetLayer"></g>
+      <!-- Ziffern & Badges -->
       <g id="badgeLayer"></g>
     </svg>
 
@@ -295,18 +298,19 @@
     let isDrawing = false;
     let lastX = 0, lastY = 0;
 
-    let strokeCheckpoints = [];
+    // Stroke-Tracking
+    let strokeData = [];
     let currentStrokeIndex = 0;
     let completed = false;
     let hasUserInteracted = false;
 
-    // Ausgewogene Werte: Kindgerechte Spur, aber zwingend sichtbar bis zum Ende
-    const HIT_RADIUS = 38;
-    const COMPLETION_RATIO = 0.85; // Mindestens 85% der Kontur müssen gemalt sein
+    // Großzügige Toleranz für Kinderhände
+    const ZONE_RADIUS = 46;
 
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
     const guideLayer = document.getElementById('guideLayer');
+    const targetLayer = document.getElementById('targetLayer');
     const badgeLayer = document.getElementById('badgeLayer');
     const letterLabel = document.getElementById('letterLabel');
     const currentStrokeNum = document.getElementById('currentStrokeNum');
@@ -383,14 +387,15 @@
       totalStrokesNum.textContent = letter.strokes.length;
 
       guideLayer.innerHTML = '';
+      targetLayer.innerHTML = '';
       badgeLayer.innerHTML = '';
-      strokeCheckpoints = [];
+      strokeData = [];
 
       const badgePositions = calculateBadgePositions(letter.strokes);
       const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
       letter.strokes.forEach((stroke, idx) => {
-        // Führungslinie
+        // Führungspfad
         const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         guide.setAttribute('d', stroke.d);
         guide.setAttribute('fill', 'none');
@@ -399,7 +404,7 @@
         guide.setAttribute('stroke-linecap', 'round');
         guideLayer.appendChild(guide);
 
-        // Richtungspfeil-Linie
+        // Richtungspfeil
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         arrow.setAttribute('d', stroke.d);
         arrow.setAttribute('fill', 'none');
@@ -410,20 +415,54 @@
         arrow.setAttribute('id', `arrow-${idx}`);
         guideLayer.appendChild(arrow);
 
-        // Checkpoints entlang der Spur
+        // Pfad vermessen & Start-/Endkoordinaten ermitteln
         const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
         const len = pathEl.getTotalLength();
-        const steps = Math.max(8, Math.floor(len / 18));
+        const startPt = pathEl.getPointAtLength(0);
+        const endPt = pathEl.getPointAtLength(len);
+
+        // Checkpoints für Mindest-Verbindung (nur 6-8 Stützpunkte)
         const pts = [];
+        const steps = 7;
         for (let i = 0; i <= steps; i++) {
           const pt = pathEl.getPointAtLength((i / steps) * len);
           pts.push({ x: pt.x, y: pt.y, hit: false });
         }
-        strokeCheckpoints.push(pts);
 
-        // Badges mit Zahlen
+        strokeData.push({
+          start: { x: startPt.x, y: startPt.y, touched: false },
+          end: { x: endPt.x, y: endPt.y, touched: false },
+          checkpoints: pts,
+          finished: false
+        });
+
+        // Visuelle ZIEL-Markierung (Zielfahne / roter Zielkreis)
+        const targetGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        targetGroup.setAttribute('id', `target-${idx}`);
+        targetGroup.setAttribute('class', idx === 0 ? 'badge-shadow' : 'hidden');
+
+        const targetCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        targetCircle.setAttribute('cx', endPt.x);
+        targetCircle.setAttribute('cy', endPt.y);
+        targetCircle.setAttribute('r', '18');
+        targetCircle.setAttribute('fill', '#f43f5e');
+        targetCircle.setAttribute('stroke', '#ffffff');
+        targetCircle.setAttribute('stroke-width', '2');
+
+        const flagText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        flagText.setAttribute('x', endPt.x);
+        flagText.setAttribute('y', endPt.y + 6);
+        flagText.setAttribute('text-anchor', 'middle');
+        flagText.setAttribute('font-size', '14');
+        flagText.textContent = '🏁';
+
+        targetGroup.appendChild(targetCircle);
+        targetGroup.appendChild(flagText);
+        targetLayer.appendChild(targetGroup);
+
+        // Visuelle START-Markierung (Grüner Ziffern-Badge)
         const pos = badgePositions[idx];
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'badge-shadow');
@@ -446,7 +485,7 @@
         pulse.setAttribute('cy', pos.displayY);
         pulse.setAttribute('r', '22');
         pulse.setAttribute('fill', '#4ade80');
-        pulse.setAttribute('class', idx === 0 ? 'active-badge-pulse' : 'hidden');
+        pulse.setAttribute('class', idx === 0 ? 'active-pulse' : 'hidden');
         pulse.setAttribute('id', `pulse-${idx}`);
 
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -478,13 +517,8 @@
     function updateStepUI() {
       currentStrokeNum.textContent = Math.min(currentStrokeIndex + 1, currentLetter ? currentLetter.strokes.length : 1);
       
-      let totalPts = 0;
-      let hitPts = 0;
-      strokeCheckpoints.forEach(pts => {
-        totalPts += pts.length;
-        pts.forEach(p => { if (p.hit) hitPts++; });
-      });
-      const pct = totalPts > 0 ? Math.round((hitPts / totalPts) * 100) : 0;
+      const finishedCount = strokeData.filter(s => s.finished).length;
+      const pct = strokeData.length > 0 ? Math.round((finishedCount / strokeData.length) * 100) : 0;
       progressBar.style.width = `${pct}%`;
       percentLabel.textContent = `${pct}%`;
 
@@ -493,21 +527,25 @@
           const pulse = document.getElementById(`pulse-${idx}`);
           const circle = document.getElementById(`circle-${idx}`);
           const arrow = document.getElementById(`arrow-${idx}`);
-          if (!pulse || !circle || !arrow) return;
+          const target = document.getElementById(`target-${idx}`);
+          if (!pulse || !circle || !arrow || !target) return;
 
           if (idx === currentStrokeIndex) {
             pulse.classList.remove('hidden');
             circle.setAttribute('fill', '#16a34a');
             arrow.setAttribute('stroke', '#0284c7');
             arrow.setAttribute('marker-end', 'url(#arrow)');
+            target.classList.remove('hidden');
           } else if (idx < currentStrokeIndex) {
             pulse.classList.add('hidden');
             circle.setAttribute('fill', '#10b981');
+            target.classList.add('hidden'); // erledigtes Ziel ausblenden
           } else {
             pulse.classList.add('hidden');
             circle.setAttribute('fill', '#94a3b8');
             arrow.setAttribute('stroke', '#e2e8f0');
             arrow.setAttribute('marker-end', 'url(#arrow-inactive)');
+            target.classList.add('hidden');
           }
         });
       }
@@ -535,7 +573,7 @@
       const pos = getCanvasCoordinates(e);
       lastX = pos.drawX;
       lastY = pos.drawY;
-      testHitAndAdvance(pos.svgX, pos.svgY);
+      trackProgress(pos.svgX, pos.svgY);
     }
 
     function draw(e) {
@@ -543,7 +581,7 @@
       e.preventDefault();
       const pos = getCanvasCoordinates(e);
 
-      // Pinselstrich
+      // Pinselzug
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(pos.drawX, pos.drawY);
@@ -554,71 +592,60 @@
       lastX = pos.drawX;
       lastY = pos.drawY;
 
-      testHitAndAdvance(pos.svgX, pos.svgY);
+      trackProgress(pos.svgX, pos.svgY);
     }
 
     function stopDraw() {
-      if (!isDrawing) return;
       isDrawing = false;
-      checkCompletion();
     }
 
-    // Prüft, ob der Strich wirklich bis zum Ende durchgemalt wurde
-    function isStrokeComplete(activePts) {
-      const hitCount = activePts.filter(p => p.hit).length;
-      const coverage = hitCount / activePts.length;
+    // Kernlogik: Wurden Start und Zielbereich des Strichs sauber verbunden?
+    function trackProgress(x, y) {
+      if (completed || !strokeData[currentStrokeIndex]) return;
 
-      // Das Endstück (die letzten 15% der Punkte) muss zwingend erreicht worden sein
-      const tailCount = Math.max(2, Math.floor(activePts.length * 0.15));
-      const tailPoints = activePts.slice(-tailCount);
-      const endReached = tailPoints.some(p => p.hit);
+      const current = strokeData[currentStrokeIndex];
 
-      return (coverage >= COMPLETION_RATIO && endReached);
-    }
+      // 1. Startzone registrieren
+      if (!current.start.touched) {
+        if (Math.hypot(current.start.x - x, current.start.y - y) <= ZONE_RADIUS) {
+          current.start.touched = true;
+        }
+      }
 
-    function testHitAndAdvance(x, y) {
-      if (completed || !strokeCheckpoints[currentStrokeIndex]) return;
-
-      const activePts = strokeCheckpoints[currentStrokeIndex];
-
-      activePts.forEach(pt => {
-        if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
+      // 2. Wegpunkte dazwischen registrieren
+      current.checkpoints.forEach(pt => {
+        if (Math.hypot(pt.x - x, pt.y - y) <= ZONE_RADIUS) {
           pt.hit = true;
         }
       });
 
-      // Nur weiterschalten, wenn die Kontur abgedeckt ist UND das Ende erreicht wurde
-      if (isStrokeComplete(activePts)) {
-        if (currentStrokeIndex < currentLetter.strokes.length - 1) {
-          // Nahtloser Übergang zum Folgestrich ohne Absetzen (z. B. beim B)
-          currentStrokeIndex++;
-          updateStepUI();
-          if (strokeCheckpoints[currentStrokeIndex]) {
-            strokeCheckpoints[currentStrokeIndex].forEach(pt => {
-              if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
-                pt.hit = true;
-              }
-            });
-          }
-        } else {
-          // Letzter Strich komplett fertig gemalt!
-          completed = true;
-          updateStepUI();
-          triggerSuccess();
-          return;
-        }
+      // 3. Zielzone registrieren
+      const distToEnd = Math.hypot(current.end.x - x, current.end.y - y);
+      if (distToEnd <= ZONE_RADIUS) {
+        current.end.touched = true;
       }
 
-      updateStepUI();
-    }
+      // 4. Verbindungsprüfung: Start berührt + Ziel berührt + mind. 55% des Pfads gestreift
+      const hitPoints = current.checkpoints.filter(p => p.hit).length;
+      const middleCoverage = hitPoints / current.checkpoints.length;
 
-    function checkCompletion() {
-      if (completed) return;
-      const activePts = strokeCheckpoints[currentStrokeIndex];
-      if (!activePts) return;
+      if (current.start.touched && current.end.touched && middleCoverage >= 0.55) {
+        current.finished = true;
 
-      if (isStrokeComplete(activePts)) {
-        if (currentStrokeIndex === currentLetter.strokes.length - 1) {
+        if (currentStrokeIndex < currentLetter.strokes.length - 1) {
+          // Direkt und nahtlos zum Folgestrich wechseln (ohne Absetzen!)
+          currentStrokeIndex++;
+          updateStepUI();
+
+          // Neuen Strich sofort mit der aktuellen Fingerposition prüfen (wichtig für Bogen 1 -> Bogen 2)
+          if (strokeData[currentStrokeIndex]) {
+            const next = strokeData[currentStrokeIndex];
+            if (Math.hypot(next.start.x - x, next.start.y - y) <= ZONE_RADIUS) {
+              next.start.touched = true;
+            }
+          }
+        } else {
+          // Alle Striche erfolgreich verbunden!
           completed = true;
           updateStepUI();
           triggerSuccess();
@@ -653,8 +680,10 @@
     function clearCanvas() {
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
-      if (strokeCheckpoints[currentStrokeIndex]) {
-        strokeCheckpoints[currentStrokeIndex].forEach(p => p.hit = false);
+      if (strokeData[currentStrokeIndex]) {
+        strokeData[currentStrokeIndex].start.touched = false;
+        strokeData[currentStrokeIndex].end.touched = false;
+        strokeData[currentStrokeIndex].checkpoints.forEach(p => p.hit = false);
       }
       updateStepUI();
     }
@@ -699,7 +728,7 @@
 
     window.addEventListener('load', () => {
       resizeCanvas();
-      loadLetter(LETTERS[0]);
+      loadLetter(LETTERS[0]); // Startet mit L wie Leiter
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       }
