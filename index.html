@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Buchstaben Lernen</title>
+  <title>Buchstaben Lernen A-Z</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -32,7 +32,7 @@
 </head>
 <body class="bg-sky-50 h-screen w-screen flex flex-col justify-between items-center p-3 sm:p-4 overflow-hidden select-none font-sans">
 
-  <!-- Kopfbereich mit Vorlese-Button, Fortschritt und Aktionen -->
+  <!-- Header -->
   <header class="w-full max-w-xl flex justify-between items-center z-20">
     <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform" title="Vorlesen">
       🔊 <span id="letterLabel" class="text-2xl font-extrabold flex items-center gap-1">A 🍎</span>
@@ -50,7 +50,7 @@
 
     <div class="flex gap-2">
       <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Neu anfangen">
-        🗑️
+        🗑️️
       </button>
       <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Nächster Buchstabe">
         ➡️
@@ -102,11 +102,10 @@
   </footer>
 
   <script>
+    // Das vollständige Alphabet A-Z mit definierten Strichen und Beispielen
     const LETTERS = [
       {
-        char: 'A',
-        word: 'A wie Apfel',
-        icon: '🍎',
+        char: 'A', word: 'A wie Apfel', icon: '🍎',
         strokes: [
           { d: 'M 200 80 L 100 420', start: [200, 80] },
           { d: 'M 200 80 L 300 420', start: [200, 80] },
@@ -114,36 +113,28 @@
         ]
       },
       {
-        char: 'B',
-        word: 'B wie Bär',
-        icon: '🐻',
+        char: 'B', word: 'B wie Bär', icon: '🐻',
         strokes: [
           { d: 'M 130 80 L 130 420', start: [130, 80] },
-          { d: 'M 130 80 C 260 80, 260 250, 130 250', start: [130, 80] },
-          { d: 'M 130 250 C 270 250, 270 420, 130 420', start: [130, 250] }
+          { d: 'M 130 80 C 265 80, 265 250, 130 250', start: [130, 80] },
+          { d: 'M 130 250 C 275 250, 275 420, 130 420', start: [130, 250] }
         ]
       },
       {
-        char: 'C',
-        word: 'C wie Clown',
-        icon: '🤡',
+        char: 'C', word: 'C wie Clown', icon: '🤡',
         strokes: [
           { d: 'M 290 140 C 130 70, 80 340, 290 380', start: [290, 140] }
         ]
       },
       {
-        char: 'D',
-        word: 'D wie Drache',
-        icon: '🪁',
+        char: 'D', word: 'D wie Drache', icon: '🪁',
         strokes: [
-          { d: 'M 140 80 L 140 420', start: [140, 80] },
-          { d: 'M 140 80 C 310 80, 310 420, 140 420', start: [140, 80] }
+          { d: 'M 130 80 L 130 420', start: [130, 80] },
+          { d: 'M 130 80 C 310 80, 310 420, 130 420', start: [130, 80] }
         ]
       },
       {
-        char: 'E',
-        word: 'E wie Elefant',
-        icon: '🐘',
+        char: 'E', word: 'E wie Elefant', icon: '🐘',
         strokes: [
           { d: 'M 140 80 L 140 420', start: [140, 80] },
           { d: 'M 140 80 L 270 80',  start: [140, 80] },
@@ -152,20 +143,157 @@
         ]
       },
       {
-        char: 'L',
-        word: 'L wie Leiter',
-        icon: '🪜',
+        char: 'F', word: 'F wie Fisch', icon: '🐟',
         strokes: [
-          { d: 'M 150 80 L 150 420', start: [150, 80] },
-          { d: 'M 150 420 L 280 420', start: [150, 420] }
+          { d: 'M 140 80 L 140 420', start: [140, 80] },
+          { d: 'M 140 80 L 270 80', start: [140, 80] },
+          { d: 'M 140 250 L 240 250', start: [140, 250] }
         ]
       },
       {
-        char: 'O',
-        word: 'O wie Oma',
-        icon: '👵',
+        char: 'G', word: 'G wie Giraffe', icon: '🦒',
         strokes: [
-          { d: 'M 200 80 C 90 80, 90 420, 200 420 C 310 420, 310 80, 200 80', start: [200, 80] }
+          { d: 'M 290 140 C 130 70, 80 340, 290 380', start: [290, 140] },
+          { d: 'M 290 380 L 290 270', start: [290, 380] },
+          { d: 'M 290 270 L 210 270', start: [290, 270] }
+        ]
+      },
+      {
+        char: 'H', word: 'H wie Haus', icon: '🏠',
+        strokes: [
+          { d: 'M 130 80 L 130 420', start: [130, 80] },
+          { d: 'M 270 80 L 270 420', start: [270, 80] },
+          { d: 'M 130 250 L 270 250', start: [130, 250] }
+        ]
+      },
+      {
+        char: 'I', word: 'I wie Igel', icon: '🦔',
+        strokes: [
+          { d: 'M 200 80 L 200 420', start: [200, 80] }
+        ]
+      },
+      {
+        char: 'J', word: 'J wie Jojo', icon: '🪀',
+        strokes: [
+          { d: 'M 250 80 L 250 340 C 250 430, 140 430, 130 350', start: [250, 80] }
+        ]
+      },
+      {
+        char: 'K', word: 'K wie Katze', icon: '🐱',
+        strokes: [
+          { d: 'M 130 80 L 130 420', start: [130, 80] },
+          { d: 'M 270 100 L 130 260', start: [270, 100] },
+          { d: 'M 150 240 L 275 420', start: [150, 240] }
+        ]
+      },
+      {
+        char: 'L', word: 'L wie Leiter', icon: '🪜',
+        strokes: [
+          { d: 'M 140 80 L 140 420', start: [140, 80] },
+          { d: 'M 140 420 L 270 420', start: [140, 420] }
+        ]
+      },
+      {
+        char: 'M', word: 'M wie Maus', icon: '🐭',
+        strokes: [
+          { d: 'M 110 420 L 110 80', start: [110, 420] },
+          { d: 'M 110 80 L 200 280', start: [110, 80] },
+          { d: 'M 200 280 L 290 80', start: [200, 280] },
+          { d: 'M 290 80 L 290 420', start: [290, 80] }
+        ]
+      },
+      {
+        char: 'N', word: 'N wie Nase', icon: '👃',
+        strokes: [
+          { d: 'M 120 420 L 120 80', start: [120, 420] },
+          { d: 'M 120 80 L 280 420', start: [120, 80] },
+          { d: 'M 280 420 L 280 80', start: [280, 420] }
+        ]
+      },
+      {
+        char: 'O', word: 'O wie Oma', icon: '👵',
+        strokes: [
+          { d: 'M 200 80 C 85 80, 85 420, 200 420 C 315 420, 315 80, 200 80', start: [200, 80] }
+        ]
+      },
+      {
+        char: 'P', word: 'P wie Pinguin', icon: '🐧',
+        strokes: [
+          { d: 'M 130 80 L 130 420', start: [130, 80] },
+          { d: 'M 130 80 C 280 80, 280 260, 130 260', start: [130, 80] }
+        ]
+      },
+      {
+        char: 'Q', word: 'Q wie Qualle', icon: '🪼',
+        strokes: [
+          { d: 'M 200 80 C 85 80, 85 410, 200 410 C 315 410, 315 80, 200 80', start: [200, 80] },
+          { d: 'M 220 350 L 300 430', start: [220, 350] }
+        ]
+      },
+      {
+        char: 'R', word: 'R wie Rakete', icon: '🚀',
+        strokes: [
+          { d: 'M 130 80 L 130 420', start: [130, 80] },
+          { d: 'M 130 80 C 275 80, 275 250, 130 250', start: [130, 80] },
+          { d: 'M 170 250 L 280 420', start: [170, 250] }
+        ]
+      },
+      {
+        char: 'S', word: 'S wie Sonne', icon: '☀️',
+        strokes: [
+          { d: 'M 280 140 C 270 70, 130 70, 130 170 C 130 280, 280 240, 280 340 C 280 430, 130 430, 120 360', start: [280, 140] }
+        ]
+      },
+      {
+        char: 'T', word: 'T wie Tiger', icon: '🐯',
+        strokes: [
+          { d: 'M 100 80 L 300 80', start: [100, 80] },
+          { d: 'M 200 80 L 200 420', start: [200, 80] }
+        ]
+      },
+      {
+        char: 'U', word: 'U wie Uhr', icon: '⏰',
+        strokes: [
+          { d: 'M 120 80 L 120 330 C 120 440, 280 440, 280 330 L 280 80', start: [120, 80] }
+        ]
+      },
+      {
+        char: 'V', word: 'V wie Vogel', icon: '🐦',
+        strokes: [
+          { d: 'M 110 80 L 200 420', start: [110, 80] },
+          { d: 'M 200 420 L 290 80', start: [200, 420] }
+        ]
+      },
+      {
+        char: 'W', word: 'W wie Wal', icon: '🐳',
+        strokes: [
+          { d: 'M 90 80 L 140 420', start: [90, 80] },
+          { d: 'M 140 420 L 200 220', start: [140, 420] },
+          { d: 'M 200 220 L 260 420', start: [200, 220] },
+          { d: 'M 260 420 L 310 80', start: [260, 420] }
+        ]
+      },
+      {
+        char: 'X', word: 'X wie Xylofon', icon: '🎵',
+        strokes: [
+          { d: 'M 110 90 L 290 410', start: [110, 90] },
+          { d: 'M 290 90 L 110 410', start: [290, 90] }
+        ]
+      },
+      {
+        char: 'Y', word: 'Y wie Yak', icon: '🐂',
+        strokes: [
+          { d: 'M 110 80 L 200 240', start: [110, 80] },
+          { d: 'M 290 80 L 200 240', start: [290, 80] },
+          { d: 'M 200 240 L 200 420', start: [200, 240] }
+        ]
+      },
+      {
+        char: 'Z', word: 'Z wie Zebra', icon: '🦓',
+        strokes: [
+          { d: 'M 110 90 L 290 90', start: [110, 90] },
+          { d: 'M 290 90 L 110 410', start: [290, 90] },
+          { d: 'M 110 410 L 290 410', start: [110, 410] }
         ]
       }
     ];
@@ -179,10 +307,12 @@
     let currentStrokeIndex = 0;
     let completed = false;
 
-    // Kritzel-Erkennung
+    // Strengere Parameter gegen vorschnellen Erfolg & Kritzeln
+    const REQUIRED_COVERAGE = 0.88; // 88% Abdeckung erforderlich
+    const HIT_RADIUS = 34;          // Toleranzradius am Finger
+    const MAX_ALLOWED_OFFTRACK_RATIO = 0.35;
     let validTouchPoints = 0;
     let offTrackPoints = 0;
-    const MAX_ALLOWED_OFFTRACK_RATIO = 0.40;
 
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
@@ -239,7 +369,7 @@
       ctx.lineJoin = 'round';
     }
 
-    // Berechnet Badges mit automatischem horizontalem Versatz für identische Startpunkte
+    // Berechnet Badges mit horizontalem Versatz für deckungsgleiche Startpunkte
     function calculateBadgePositions(strokes) {
       const positions = [];
       const threshold = 35;
@@ -289,7 +419,7 @@
       const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
       letter.strokes.forEach((stroke, idx) => {
-        // Führungslinie
+        // Führungspfad
         const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         guide.setAttribute('d', stroke.d);
         guide.setAttribute('fill', 'none');
@@ -298,7 +428,7 @@
         guide.setAttribute('stroke-linecap', 'round');
         guideLayer.appendChild(guide);
 
-        // Richtungspfeil
+        // Richtungspfeil-Linie
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         arrow.setAttribute('d', stroke.d);
         arrow.setAttribute('fill', 'none');
@@ -314,7 +444,7 @@
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
         const len = pathEl.getTotalLength();
-        const steps = Math.max(6, Math.floor(len / 22));
+        const steps = Math.max(8, Math.floor(len / 18));
         const pts = [];
         for (let i = 0; i <= steps; i++) {
           const pt = pathEl.getPointAtLength((i / steps) * len);
@@ -322,7 +452,7 @@
         }
         strokeCheckpoints.push(pts);
 
-        // Badge-Gruppe
+        // Badge
         const pos = badgePositions[idx];
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'badge-shadow');
@@ -456,7 +586,19 @@
       checkStrokeProgress();
     }
 
-    // Kontinuierliche Prüfung: Schaltet bei Fertigstellung sofort nahtlos weiter
+    // Strengere Prüfung: Gesamtabdeckung + Erreichen des Endpunkts
+    function isStrokeTrulyFinished(activePts) {
+      const hitCount = activePts.filter(p => p.hit).length;
+      const coverage = hitCount / activePts.length;
+
+      // Die letzten 2-3 Punkte (Zielbereich) müssen ebenfalls berührt worden sein
+      const tailCount = Math.max(2, Math.floor(activePts.length * 0.2));
+      const tailPoints = activePts.slice(-tailCount);
+      const tailReached = tailPoints.some(p => p.hit);
+
+      return (coverage >= REQUIRED_COVERAGE && tailReached);
+    }
+
     function evaluateTouchPoint(x, y) {
       if (completed || !strokeCheckpoints[currentStrokeIndex]) return;
 
@@ -466,24 +608,20 @@
       activePts.forEach(pt => {
         const d = Math.hypot(pt.x - x, pt.y - y);
         if (d < minDistance) minDistance = d;
-        if (d < 38) {
+        if (d < HIT_RADIUS) {
           pt.hit = true;
         }
       });
 
-      if (minDistance <= 54) {
+      if (minDistance <= 50) {
         validTouchPoints++;
       } else {
         offTrackPoints++;
       }
 
-      // Prüfen, ob der aktuelle Strich während des Zugs fertiggestellt wurde
-      const hitCount = activePts.filter(p => p.hit).length;
-      const coverage = hitCount / activePts.length;
-
-      if (coverage >= 0.75) {
+      // Prüfen, ob der Strich WIRKLICH bis zum Ende gemalt wurde
+      if (isStrokeTrulyFinished(activePts)) {
         if (currentStrokeIndex < currentLetter.strokes.length - 1) {
-          // Nahtloser Übergang zum Folgestrich ohne Absetzen
           currentStrokeIndex++;
           validTouchPoints = 0;
           offTrackPoints = 0;
@@ -499,9 +637,9 @@
 
       updateStepUI();
 
-      // Kritzel-Bremse bei zu viel Abweichung
+      // Kritzel-Bremse
       const totalSamples = validTouchPoints + offTrackPoints;
-      if (totalSamples > 35) {
+      if (totalSamples > 30) {
         const offRatio = offTrackPoints / totalSamples;
         if (offRatio > MAX_ALLOWED_OFFTRACK_RATIO) {
           handleScribbleAbort();
@@ -512,7 +650,7 @@
     function testHitOnCurrentStroke(x, y) {
       if (!strokeCheckpoints[currentStrokeIndex]) return;
       strokeCheckpoints[currentStrokeIndex].forEach(pt => {
-        if (Math.hypot(pt.x - x, pt.y - y) < 38) {
+        if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
           pt.hit = true;
         }
       });
@@ -540,8 +678,7 @@
       const activePts = strokeCheckpoints[currentStrokeIndex];
       if (!activePts) return;
 
-      const hitCount = activePts.filter(p => p.hit).length;
-      if (hitCount / activePts.length >= 0.75) {
+      if (isStrokeTrulyFinished(activePts)) {
         if (currentStrokeIndex === currentLetter.strokes.length - 1) {
           completed = true;
           updateStepUI();
