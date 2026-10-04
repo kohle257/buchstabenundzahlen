@@ -7,6 +7,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Konfetti für Erfolgserlebnis -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     body {
@@ -25,21 +26,21 @@
       animation: pulse-ring 1.3s infinite ease-in-out;
     }
     .badge-shadow {
-      filter: drop-shadow(0 3px 5px rgba(0,0,0,0.25));
+      filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.25));
     }
   </style>
 </head>
 <body class="bg-sky-50 h-screen w-screen flex flex-col justify-between items-center p-3 sm:p-4 overflow-hidden select-none font-sans">
 
-  <!-- Header -->
+  <!-- Kopfbereich mit Vorlese-Button, Fortschritt und Aktionen -->
   <header class="w-full max-w-xl flex justify-between items-center z-20">
-    <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform">
-      🔊 <span id="letterLabel" class="text-3xl font-extrabold">E</span>
+    <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform" title="Vorlesen">
+      🔊 <span id="letterLabel" class="text-2xl font-extrabold flex items-center gap-1">A 🍎</span>
     </button>
 
-    <div class="flex-1 mx-4 bg-white/90 p-2 rounded-2xl shadow border border-sky-100 flex flex-col gap-1">
+    <div class="flex-1 mx-3 bg-white/90 p-2 rounded-2xl shadow border border-sky-100 flex flex-col gap-1">
       <div class="flex justify-between text-xs font-bold text-sky-800 px-1">
-        <span>Strich <span id="currentStrokeNum">1</span> / <span id="totalStrokesNum">4</span></span>
+        <span>Strich <span id="currentStrokeNum">1</span> / <span id="totalStrokesNum">3</span></span>
         <span id="percentLabel">0%</span>
       </div>
       <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
@@ -48,16 +49,16 @@
     </div>
 
     <div class="flex gap-2">
-      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Neu starten">
+      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Neu anfangen">
         🗑️
       </button>
-      <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform">
-        ➡️️ Weiter
+      <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Nächster Buchstabe">
+        ➡️
       </button>
     </div>
   </header>
 
-  <!-- Zeichenfläche -->
+  <!-- Zeichenbereich -->
   <main class="relative flex-1 w-full max-w-xl my-2 bg-white rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
     
     <svg id="letterSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 500">
@@ -78,10 +79,10 @@
     <!-- Erfolgs-Banner -->
     <div id="successBanner" class="hidden absolute z-30 inset-0 bg-emerald-500/25 backdrop-blur-sm flex flex-col items-center justify-center">
       <span class="text-7xl animate-bounce">⭐</span>
-      <h2 class="text-3xl font-black text-emerald-800 mt-2">Wunderschön!</h2>
+      <h2 class="text-3xl font-black text-emerald-800 mt-2">Super gemacht!</h2>
     </div>
 
-    <!-- Kritzel-Warnung / Abbruch-Banner -->
+    <!-- Kritzel-Warnung -->
     <div id="scribbleWarning" class="hidden absolute z-30 inset-0 bg-amber-500/25 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
       <span class="text-6xl animate-pulse">✏️</span>
       <h2 class="text-2xl font-black text-amber-900 mt-2">Hoppla, zu viel gekritzelt!</h2>
@@ -89,7 +90,7 @@
     </div>
   </main>
 
-  <!-- Farbwahl -->
+  <!-- Farbauswahl -->
   <footer class="w-full max-w-xl flex justify-center items-center gap-3 py-1 z-20">
     <div class="flex gap-4 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-lg border border-sky-100">
       <button class="color-pick w-11 h-11 rounded-full bg-rose-500 ring-4 ring-rose-200 scale-110 shadow transition" data-color="#f43f5e"></button>
@@ -103,16 +104,9 @@
   <script>
     const LETTERS = [
       {
-        char: 'E',
-        strokes: [
-          { d: 'M 140 80 L 140 420', start: [140, 80] },
-          { d: 'M 140 80 L 270 80',  start: [140, 80] },
-          { d: 'M 140 250 L 240 250', start: [140, 250] },
-          { d: 'M 140 420 L 270 420', start: [140, 420] }
-        ]
-      },
-      {
         char: 'A',
+        word: 'A wie Apfel',
+        icon: '🍎',
         strokes: [
           { d: 'M 200 80 L 100 420', start: [200, 80] },
           { d: 'M 200 80 L 300 420', start: [200, 80] },
@@ -121,6 +115,8 @@
       },
       {
         char: 'B',
+        word: 'B wie Bär',
+        icon: '🐻',
         strokes: [
           { d: 'M 130 80 L 130 420', start: [130, 80] },
           { d: 'M 130 80 C 260 80, 260 250, 130 250', start: [130, 80] },
@@ -129,19 +125,36 @@
       },
       {
         char: 'C',
+        word: 'C wie Clown',
+        icon: '🤡',
         strokes: [
           { d: 'M 290 140 C 130 70, 80 340, 290 380', start: [290, 140] }
         ]
       },
       {
         char: 'D',
+        word: 'D wie Drache',
+        icon: '🪁',
         strokes: [
           { d: 'M 140 80 L 140 420', start: [140, 80] },
           { d: 'M 140 80 C 310 80, 310 420, 140 420', start: [140, 80] }
         ]
       },
       {
+        char: 'E',
+        word: 'E wie Elefant',
+        icon: '🐘',
+        strokes: [
+          { d: 'M 140 80 L 140 420', start: [140, 80] },
+          { d: 'M 140 80 L 270 80',  start: [140, 80] },
+          { d: 'M 140 250 L 240 250', start: [140, 250] },
+          { d: 'M 140 420 L 270 420', start: [140, 420] }
+        ]
+      },
+      {
         char: 'L',
+        word: 'L wie Leiter',
+        icon: '🪜',
         strokes: [
           { d: 'M 150 80 L 150 420', start: [150, 80] },
           { d: 'M 150 420 L 280 420', start: [150, 420] }
@@ -149,6 +162,8 @@
       },
       {
         char: 'O',
+        word: 'O wie Oma',
+        icon: '👵',
         strokes: [
           { d: 'M 200 80 C 90 80, 90 420, 200 420 C 310 420, 310 80, 200 80', start: [200, 80] }
         ]
@@ -167,7 +182,7 @@
     // Kritzel-Erkennung
     let validTouchPoints = 0;
     let offTrackPoints = 0;
-    const MAX_ALLOWED_OFFTRACK_RATIO = 0.40; // Max 40% darf außerhalb liegen
+    const MAX_ALLOWED_OFFTRACK_RATIO = 0.40;
 
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
@@ -224,14 +239,13 @@
       ctx.lineJoin = 'round';
     }
 
-    // Berechnet Badge-Positionen und verschiebt überlappende Badges sauber nebeneinander
+    // Berechnet Badges mit automatischem horizontalem Versatz für identische Startpunkte
     function calculateBadgePositions(strokes) {
       const positions = [];
-      const threshold = 35; // Wenn Abstand < 35px, gilt es als Überlappung
+      const threshold = 35;
 
       strokes.forEach((stroke, i) => {
         let [x, y] = stroke.start;
-        // Zähle wie viele vorherige Badges an fast derselben Stelle lagen
         let overlapCount = 0;
         for (let j = 0; j < i; j++) {
           const prev = positions[j];
@@ -240,14 +254,11 @@
           }
         }
 
-        // Versatz-Strategie: 
-        // 1. Badge bleibt exakt am Start
-        // Nachfolgende wandern leicht versetzt (z. B. nach rechts oben / rechts)
         let displayX = x;
         let displayY = y;
         if (overlapCount > 0) {
-          displayX += overlapCount * 36; // Horizontal daneben
-          displayY -= (overlapCount % 2 === 0 ? 10 : -10);
+          displayX += overlapCount * 38;
+          displayY -= (overlapCount % 2 === 0 ? 8 : -8);
         }
 
         positions.push({ origX: x, origY: y, displayX, displayY });
@@ -258,7 +269,7 @@
 
     function loadLetter(letter) {
       currentLetter = letter;
-      letterLabel.textContent = letter.char;
+      letterLabel.textContent = `${letter.char} ${letter.icon || ''}`;
       currentStrokeIndex = 0;
       completed = false;
       validTouchPoints = 0;
@@ -278,7 +289,7 @@
       const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
       letter.strokes.forEach((stroke, idx) => {
-        // Führungspfad
+        // Führungslinie
         const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         guide.setAttribute('d', stroke.d);
         guide.setAttribute('fill', 'none');
@@ -287,7 +298,7 @@
         guide.setAttribute('stroke-linecap', 'round');
         guideLayer.appendChild(guide);
 
-        // Richtungspfeil-Linie
+        // Richtungspfeil
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         arrow.setAttribute('d', stroke.d);
         arrow.setAttribute('fill', 'none');
@@ -298,7 +309,7 @@
         arrow.setAttribute('id', `arrow-${idx}`);
         guideLayer.appendChild(arrow);
 
-        // Checkpoints entlang der Kurve
+        // Checkpoints entlang des Pfads
         const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
@@ -311,20 +322,19 @@
         }
         strokeCheckpoints.push(pts);
 
-        // Badges mit berechneter Position
+        // Badge-Gruppe
         const pos = badgePositions[idx];
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'badge-shadow');
         g.setAttribute('id', `badge-group-${idx}`);
 
-        // Wenn versetzt, kleine feine Verbindungslinie zum echten Start zeichnen
         if (pos.origX !== pos.displayX || pos.origY !== pos.displayY) {
           const connector = document.createElementNS('http://www.w3.org/2000/svg', 'line');
           connector.setAttribute('x1', pos.origX);
           connector.setAttribute('y1', pos.origY);
           connector.setAttribute('x2', pos.displayX);
           connector.setAttribute('y2', pos.displayY);
-          connector.setAttribute('stroke', '#64748b');
+          connector.setAttribute('stroke', '#94a3b8');
           connector.setAttribute('stroke-width', '2');
           connector.setAttribute('stroke-dasharray', '3 3');
           g.appendChild(connector);
@@ -361,7 +371,7 @@
       });
 
       updateStepUI();
-      speak(letter.char);
+      speak(letter.word || letter.char);
     }
 
     function updateStepUI() {
@@ -391,7 +401,7 @@
             arrow.setAttribute('marker-end', 'url(#arrow)');
           } else if (idx < currentStrokeIndex) {
             pulse.classList.add('hidden');
-            circle.setAttribute('fill', '#10b981'); // erledigt
+            circle.setAttribute('fill', '#10b981');
           } else {
             pulse.classList.add('hidden');
             circle.setAttribute('fill', '#94a3b8');
@@ -446,9 +456,9 @@
       checkStrokeProgress();
     }
 
-    // Unterscheidet: Ist der gemalte Punkt nah an der aktiven Spur oder reines Kritzeln?
+    // Kontinuierliche Prüfung: Schaltet bei Fertigstellung sofort nahtlos weiter
     function evaluateTouchPoint(x, y) {
-      if (!strokeCheckpoints[currentStrokeIndex]) return;
+      if (completed || !strokeCheckpoints[currentStrokeIndex]) return;
 
       const activePts = strokeCheckpoints[currentStrokeIndex];
       let minDistance = Infinity;
@@ -456,21 +466,40 @@
       activePts.forEach(pt => {
         const d = Math.hypot(pt.x - x, pt.y - y);
         if (d < minDistance) minDistance = d;
-        if (d < 36) { // Trefferradius
+        if (d < 38) {
           pt.hit = true;
         }
       });
 
-      // Max. erlaubter Abstand zur Ideallinie (52 SVG-Punkte)
-      if (minDistance <= 52) {
+      if (minDistance <= 54) {
         validTouchPoints++;
       } else {
         offTrackPoints++;
       }
 
+      // Prüfen, ob der aktuelle Strich während des Zugs fertiggestellt wurde
+      const hitCount = activePts.filter(p => p.hit).length;
+      const coverage = hitCount / activePts.length;
+
+      if (coverage >= 0.75) {
+        if (currentStrokeIndex < currentLetter.strokes.length - 1) {
+          // Nahtloser Übergang zum Folgestrich ohne Absetzen
+          currentStrokeIndex++;
+          validTouchPoints = 0;
+          offTrackPoints = 0;
+          updateStepUI();
+          testHitOnCurrentStroke(x, y);
+        } else {
+          completed = true;
+          updateStepUI();
+          triggerSuccess();
+          return;
+        }
+      }
+
       updateStepUI();
 
-      // Kritzel-Prüfung in Echtzeit bei ausreichender Sample-Menge
+      // Kritzel-Bremse bei zu viel Abweichung
       const totalSamples = validTouchPoints + offTrackPoints;
       if (totalSamples > 35) {
         const offRatio = offTrackPoints / totalSamples;
@@ -478,6 +507,15 @@
           handleScribbleAbort();
         }
       }
+    }
+
+    function testHitOnCurrentStroke(x, y) {
+      if (!strokeCheckpoints[currentStrokeIndex]) return;
+      strokeCheckpoints[currentStrokeIndex].forEach(pt => {
+        if (Math.hypot(pt.x - x, pt.y - y) < 38) {
+          pt.hit = true;
+        }
+      });
     }
 
     function handleScribbleAbort() {
@@ -488,7 +526,6 @@
       setTimeout(() => {
         scribbleWarning.classList.add('hidden');
         clearCanvas();
-        // Checkpoints des aktuellen Strichs zurücksetzen
         if (strokeCheckpoints[currentStrokeIndex]) {
           strokeCheckpoints[currentStrokeIndex].forEach(p => p.hit = false);
         }
@@ -504,17 +541,8 @@
       if (!activePts) return;
 
       const hitCount = activePts.filter(p => p.hit).length;
-      const coverage = hitCount / activePts.length;
-
-      // Wenn mindestens 75% der aktiven Bahn sauber abgefahren wurden
-      if (coverage >= 0.75) {
-        validTouchPoints = 0;
-        offTrackPoints = 0;
-
-        if (currentStrokeIndex < currentLetter.strokes.length - 1) {
-          currentStrokeIndex++;
-          updateStepUI();
-        } else {
+      if (hitCount / activePts.length >= 0.75) {
+        if (currentStrokeIndex === currentLetter.strokes.length - 1) {
           completed = true;
           updateStepUI();
           triggerSuccess();
@@ -562,7 +590,8 @@
         window.speechSynthesis.cancel();
         const utter = new SpeechSynthesisUtterance(text);
         utter.lang = 'de-DE';
-        utter.rate = 0.85;
+        utter.rate = 0.82;
+        utter.pitch = 1.05;
         window.speechSynthesis.speak(utter);
       }
     }
@@ -578,7 +607,9 @@
 
     document.getElementById('nextBtn').addEventListener('click', () => loadLetter(getRandomLetter()));
     document.getElementById('clearBtn').addEventListener('click', clearCanvas);
-    document.getElementById('speakBtn').addEventListener('click', () => currentLetter && speak(currentLetter.char));
+    document.getElementById('speakBtn').addEventListener('click', () => {
+      if (currentLetter) speak(currentLetter.word || currentLetter.char);
+    });
 
     document.querySelectorAll('.color-pick').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -594,7 +625,7 @@
 
     window.addEventListener('load', () => {
       resizeCanvas();
-      loadLetter(LETTERS[0]); // Startet direkt mit 'E' zum sofortigen Testen
+      loadLetter(getRandomLetter());
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       }
