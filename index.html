@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Konfetti für Erfolgserlebnis -->
+  <!-- Konfetti für echten Erfolg -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     body {
@@ -300,9 +300,9 @@
     let completed = false;
     let hasUserInteracted = false;
 
-    // Entspannte, kleinkindgerechte Toleranz wie am Anfang
-    const HIT_RADIUS = 40;
-    const COMPLETION_RATIO = 0.75; // 75% Abdeckung reicht völlig aus
+    // Ausgewogene Werte: Kindgerechte Spur, aber zwingend sichtbar bis zum Ende
+    const HIT_RADIUS = 38;
+    const COMPLETION_RATIO = 0.85; // Mindestens 85% der Kontur müssen gemalt sein
 
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
@@ -390,7 +390,7 @@
       const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
       letter.strokes.forEach((stroke, idx) => {
-        // Führungspfad
+        // Führungslinie
         const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         guide.setAttribute('d', stroke.d);
         guide.setAttribute('fill', 'none');
@@ -410,12 +410,12 @@
         arrow.setAttribute('id', `arrow-${idx}`);
         guideLayer.appendChild(arrow);
 
-        // Checkpoints entlang des Pfads
+        // Checkpoints entlang der Spur
         const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         pathEl.setAttribute('d', stroke.d);
         tempSvg.appendChild(pathEl);
         const len = pathEl.getTotalLength();
-        const steps = Math.max(6, Math.floor(len / 22));
+        const steps = Math.max(8, Math.floor(len / 18));
         const pts = [];
         for (let i = 0; i <= steps; i++) {
           const pt = pathEl.getPointAtLength((i / steps) * len);
@@ -543,7 +543,7 @@
       e.preventDefault();
       const pos = getCanvasCoordinates(e);
 
-      // Pinselstrich zeichnen
+      // Pinselstrich
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(pos.drawX, pos.drawY);
@@ -563,7 +563,19 @@
       checkCompletion();
     }
 
-    // Reines Treffer-Tracking ohne Meckern/Abbruch, mit nahtlosem Weitermalen
+    // Prüft, ob der Strich wirklich bis zum Ende durchgemalt wurde
+    function isStrokeComplete(activePts) {
+      const hitCount = activePts.filter(p => p.hit).length;
+      const coverage = hitCount / activePts.length;
+
+      // Das Endstück (die letzten 15% der Punkte) muss zwingend erreicht worden sein
+      const tailCount = Math.max(2, Math.floor(activePts.length * 0.15));
+      const tailPoints = activePts.slice(-tailCount);
+      const endReached = tailPoints.some(p => p.hit);
+
+      return (coverage >= COMPLETION_RATIO && endReached);
+    }
+
     function testHitAndAdvance(x, y) {
       if (completed || !strokeCheckpoints[currentStrokeIndex]) return;
 
@@ -575,14 +587,12 @@
         }
       });
 
-      // Prüfen, ob der aktive Strich zu mind. 75% abgedeckt ist
-      const hitCount = activePts.filter(p => p.hit).length;
-      if (hitCount / activePts.length >= COMPLETION_RATIO) {
+      // Nur weiterschalten, wenn die Kontur abgedeckt ist UND das Ende erreicht wurde
+      if (isStrokeComplete(activePts)) {
         if (currentStrokeIndex < currentLetter.strokes.length - 1) {
-          // Nahtloser Übergang zum Folgestrich ohne Absetzen
+          // Nahtloser Übergang zum Folgestrich ohne Absetzen (z. B. beim B)
           currentStrokeIndex++;
           updateStepUI();
-          // Neuen Folgestrich direkt mit demselben Punkt prüfen
           if (strokeCheckpoints[currentStrokeIndex]) {
             strokeCheckpoints[currentStrokeIndex].forEach(pt => {
               if (Math.hypot(pt.x - x, pt.y - y) < HIT_RADIUS) {
@@ -591,6 +601,7 @@
             });
           }
         } else {
+          // Letzter Strich komplett fertig gemalt!
           completed = true;
           updateStepUI();
           triggerSuccess();
@@ -606,8 +617,7 @@
       const activePts = strokeCheckpoints[currentStrokeIndex];
       if (!activePts) return;
 
-      const hitCount = activePts.filter(p => p.hit).length;
-      if (hitCount / activePts.length >= COMPLETION_RATIO) {
+      if (isStrokeComplete(activePts)) {
         if (currentStrokeIndex === currentLetter.strokes.length - 1) {
           completed = true;
           updateStepUI();
@@ -689,7 +699,6 @@
 
     window.addEventListener('load', () => {
       resizeCanvas();
-      // Startet direkt mit L wie Leiter als erstem Buchstaben
       loadLetter(LETTERS[0]);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
