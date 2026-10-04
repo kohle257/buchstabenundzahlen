@@ -7,73 +7,100 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#38bdf8" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leichtgewichtiges Konfetti für Kinder-Erfolgseffekt -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     body {
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
     }
-    /* Pulsierender Startpunkt */
     @keyframes pulse-ring {
-      0% { transform: scale(0.9); opacity: 0.9; }
-      50% { transform: scale(1.2); opacity: 0.5; }
-      100% { transform: scale(0.9); opacity: 0.9; }
+      0% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.35); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 0.9; }
     }
-    .pulse-dot {
+    .active-badge-pulse {
+      transform-box: fill-box;
       transform-origin: center;
-      animation: pulse-ring 1.8s infinite ease-in-out;
+      animation: pulse-ring 1.4s infinite ease-in-out;
+    }
+    .badge-shadow {
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
     }
   </style>
 </head>
-<body class="bg-sky-50 h-screen w-screen flex flex-col justify-between items-center p-4 overflow-hidden select-none font-sans">
+<body class="bg-sky-50 h-screen w-screen flex flex-col justify-between items-center p-3 sm:p-4 overflow-hidden select-none font-sans">
 
-  <!-- Kopfbereich mit Steuerungs-Buttons -->
+  <!-- Kopfbereich mit Fortschritt & Aktionen -->
   <header class="w-full max-w-xl flex justify-between items-center z-20">
-    <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold p-4 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform">
-      🔊 <span id="letterLabel" class="text-2xl">A</span>
+    <button id="speakBtn" class="bg-amber-400 hover:bg-amber-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-xl transition-transform">
+      🔊 <span id="letterLabel" class="text-3xl font-extrabold">A</span>
     </button>
+
+    <!-- Visueller Fortschrittsbalken -->
+    <div class="flex-1 mx-4 bg-white/80 p-2 rounded-2xl shadow border border-sky-100 flex flex-col gap-1">
+      <div class="flex justify-between text-xs font-bold text-sky-800 px-1">
+        <span>Schritt <span id="currentStrokeNum">1</span> / <span id="totalStrokesNum">3</span></span>
+        <span id="percentLabel">0%</span>
+      </div>
+      <div class="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+        <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+      </div>
+    </div>
+
     <div class="flex gap-2">
-      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform">
-        🗑️ Neu malen
+      <button id="clearBtn" class="bg-rose-400 hover:bg-rose-500 active:scale-95 text-white font-bold px-4 py-3 rounded-2xl shadow-lg text-lg transition-transform" title="Löschen">
+        🗑️
       </button>
-      <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-6 py-3 rounded-2xl shadow-lg text-lg transition-transform">
-        ➡️ Nächster
+      <button id="nextBtn" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-5 py-3 rounded-2xl shadow-lg text-lg transition-transform">
+        ➡️ Weiter
       </button>
     </div>
   </header>
 
   <!-- Haupt-Zeichenbereich -->
-  <main class="relative flex-1 w-full max-w-xl my-3 bg-white rounded-3xl shadow-xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
+  <main class="relative flex-1 w-full max-w-xl my-2 bg-white rounded-3xl shadow-2xl border-4 border-sky-200 overflow-hidden flex items-center justify-center">
     
-    <!-- SVG Führungslinien (Buchstabe, Pfeile, Punkte) -->
+    <!-- SVG Führungslinien, Pfeile & Zahlen-Badges -->
     <svg id="letterSvg" class="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 400 500">
       <defs>
-        <!-- Pfeilspitze für Linien -->
-        <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M 0 1 L 10 5 L 0 9 z" fill="#0284c7" />
         </marker>
+        <marker id="arrow-inactive" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#94a3b8" />
+        </marker>
       </defs>
-      <!-- Wird dynamisch befüllt -->
-      <g id="letterPaths"></g>
+      <!-- Pfade -->
+      <g id="guideLayer"></g>
+      <!-- Schritt-Zahlen / Start-Icons (immer obenauf) -->
+      <g id="badgeLayer"></g>
     </svg>
 
-    <!-- Canvas zum Freihand-Nachspuren -->
+    <!-- Canvas zum Freihand-Malen -->
     <canvas id="paintCanvas" class="absolute inset-0 w-full h-full z-10"></canvas>
+
+    <!-- Erfolgs-Overlay Banner (erscheint kurz bei Erfolg) -->
+    <div id="successBanner" class="hidden absolute z-30 inset-0 bg-emerald-500/20 backdrop-blur-sm flex flex-col items-center justify-center transition-all animate-bounce">
+      <span class="text-7xl">⭐</span>
+      <h2 class="text-3xl font-extrabold text-emerald-700 mt-2">Klasse gemacht!</h2>
+    </div>
   </main>
 
-  <!-- Farbauswahl für den Pinsel -->
-  <footer class="w-full max-w-xl flex justify-center items-center gap-4 py-2 z-20">
-    <div class="flex gap-3 bg-white/80 backdrop-blur p-2 rounded-2xl shadow border border-sky-100">
-      <button class="color-pick w-10 h-10 rounded-full bg-rose-500 ring-4 ring-rose-200 scale-110" data-color="#f43f5e"></button>
-      <button class="color-pick w-10 h-10 rounded-full bg-amber-500" data-color="#f59e0b"></button>
-      <button class="color-pick w-10 h-10 rounded-full bg-emerald-500" data-color="#10b981"></button>
-      <button class="color-pick w-10 h-10 rounded-full bg-sky-500" data-color="#0ea5e9"></button>
-      <button class="color-pick w-10 h-10 rounded-full bg-purple-500" data-color="#a855f7"></button>
+  <!-- Farbauswahl für den Zauber-Stift -->
+  <footer class="w-full max-w-xl flex justify-center items-center gap-3 py-1 z-20">
+    <div class="flex gap-4 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-lg border border-sky-100">
+      <button class="color-pick w-11 h-11 rounded-full bg-rose-500 ring-4 ring-rose-200 scale-110 shadow transition" data-color="#f43f5e"></button>
+      <button class="color-pick w-11 h-11 rounded-full bg-amber-500 shadow transition" data-color="#f59e0b"></button>
+      <button class="color-pick w-11 h-11 rounded-full bg-emerald-500 shadow transition" data-color="#10b981"></button>
+      <button class="color-pick w-11 h-11 rounded-full bg-sky-500 shadow transition" data-color="#0ea5e9"></button>
+      <button class="color-pick w-11 h-11 rounded-full bg-purple-500 shadow transition" data-color="#a855f7"></button>
     </div>
   </footer>
 
   <script>
-    // Definition von Buchstaben mit Strichen (d = SVG-Pfad, start = Startpunkt-Koordinaten)
+    // Definition der Buchstaben mit Startposition & Richtungspfaden
     const LETTERS = [
       {
         char: 'A',
@@ -94,7 +121,7 @@
       {
         char: 'C',
         strokes: [
-          { d: 'M 290 140 C 130 80, 90 350, 290 380', start: [290, 140] }
+          { d: 'M 290 140 C 130 70, 80 340, 290 380', start: [290, 140] }
         ]
       },
       {
@@ -107,16 +134,10 @@
       {
         char: 'E',
         strokes: [
-          { d: 'M 150 80 L 150 420', start: [150, 80] },
-          { d: 'M 150 80 L 280 80', start: [150, 80] },
-          { d: 'M 150 250 L 250 250', start: [150, 250] },
-          { d: 'M 150 420 L 280 420', start: [150, 420] }
-        ]
-      },
-      {
-        char: 'O',
-        strokes: [
-          { d: 'M 200 80 C 100 80, 100 420, 200 420 C 300 420, 300 80, 200 80', start: [200, 80] }
+          { d: 'M 140 80 L 140 420', start: [140, 80] },
+          { d: 'M 140 80 L 270 80', start: [140, 80] },
+          { d: 'M 140 250 L 240 250', start: [140, 250] },
+          { d: 'M 140 420 L 270 420', start: [140, 420] }
         ]
       },
       {
@@ -124,6 +145,12 @@
         strokes: [
           { d: 'M 150 80 L 150 420', start: [150, 80] },
           { d: 'M 150 420 L 280 420', start: [150, 420] }
+        ]
+      },
+      {
+        char: 'O',
+        strokes: [
+          { d: 'M 200 80 C 90 80, 90 420, 200 420 C 310 420, 310 80, 200 80', start: [200, 80] }
         ]
       }
     ];
@@ -134,12 +161,41 @@
     let lastX = 0;
     let lastY = 0;
 
+    // Checkpoint-Logik für Erfolgskontrolle
+    let strokeCheckpoints = []; // Array aus Arrays mit Checkpoints pro Strich
+    let currentStrokeIndex = 0;
+    let completed = false;
+
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
-    const svgGroup = document.getElementById('letterPaths');
+    const guideLayer = document.getElementById('guideLayer');
+    const badgeLayer = document.getElementById('badgeLayer');
     const letterLabel = document.getElementById('letterLabel');
+    const currentStrokeNum = document.getElementById('currentStrokeNum');
+    const totalStrokesNum = document.getElementById('totalStrokesNum');
+    const progressBar = document.getElementById('progressBar');
+    const percentLabel = document.getElementById('percentLabel');
+    const successBanner = document.getElementById('successBanner');
 
-    // Canvas auflösen
+    // Kindgerechter Sound-Generator (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playCheerJingle() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const notes = [261.63, 329.63, 392.00, 523.25]; // C - E - G - C'
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + i * 0.12);
+        osc.stop(audioCtx.currentTime + i * 0.12 + 0.4);
+      });
+    }
+
     function resizeCanvas() {
       const rect = canvas.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
@@ -150,68 +206,249 @@
       ctx.lineJoin = 'round';
     }
 
-    // Buchstabe rendern
     function loadLetter(letter) {
       currentLetter = letter;
       letterLabel.textContent = letter.char;
+      currentStrokeIndex = 0;
+      completed = false;
+      successBanner.classList.add('hidden');
       clearCanvas();
 
-      // SVG leeren und neu aufbauen
-      svgGroup.innerHTML = '';
+      totalStrokesNum.textContent = letter.strokes.length;
+      updateStepUI();
+
+      guideLayer.innerHTML = '';
+      badgeLayer.innerHTML = '';
+      strokeCheckpoints = [];
+
+      // Temporäres Hilfs-SVG-Element, um exakte Pfadpunkte zu berechnen
+      const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 
       letter.strokes.forEach((stroke, idx) => {
-        // 1. Hintergrund-Leitspur (grau-blau gepunktet)
+        // 1. Führungspfad
         const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         guide.setAttribute('d', stroke.d);
         guide.setAttribute('fill', 'none');
-        guide.setAttribute('stroke', '#cbd5e1');
-        guide.setAttribute('stroke-width', '44');
+        guide.setAttribute('stroke', '#e2e8f0');
+        guide.setAttribute('stroke-width', '46');
         guide.setAttribute('stroke-linecap', 'round');
-        svgGroup.appendChild(guide);
+        guide.setAttribute('id', `guide-${idx}`);
+        guideLayer.appendChild(guide);
 
         // 2. Richtungslinie mit Pfeil
-        const arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        arrowPath.setAttribute('d', stroke.d);
-        arrowPath.setAttribute('fill', 'none');
-        arrowPath.setAttribute('stroke', '#0284c7');
-        arrowPath.setAttribute('stroke-width', '6');
-        arrowPath.setAttribute('stroke-dasharray', '12 10');
-        arrowPath.setAttribute('marker-end', 'url(#arrow)');
-        svgGroup.appendChild(arrowPath);
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arrow.setAttribute('d', stroke.d);
+        arrow.setAttribute('fill', 'none');
+        arrow.setAttribute('stroke', idx === 0 ? '#0284c7' : '#94a3b8');
+        arrow.setAttribute('stroke-width', '5');
+        arrow.setAttribute('stroke-dasharray', '10 10');
+        arrow.setAttribute('marker-end', idx === 0 ? 'url(#arrow)' : 'url(#arrow-inactive)');
+        arrow.setAttribute('id', `arrow-${idx}`);
+        guideLayer.appendChild(arrow);
 
-        // 3. Startpunkt mit Ziffer
+        // 3. Checkpoints entlang des Pfads sampeln (alle ~25 Einheiten)
+        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('d', stroke.d);
+        tempSvg.appendChild(pathEl);
+        const len = pathEl.getTotalLength();
+        const steps = Math.max(5, Math.floor(len / 25));
+        const points = [];
+        for (let i = 0; i <= steps; i++) {
+          const pt = pathEl.getPointAtLength((i / steps) * len);
+          points.push({ x: pt.x, y: pt.y, hit: false });
+        }
+        strokeCheckpoints.push(points);
+
+        // 4. Badges (Schritt-Nummerierung) im badgeLayer (bleibt immer sichtbar obenauf)
         const [x, y] = stroke.start;
-        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('id', `badge-group-${idx}`);
+        g.setAttribute('class', 'badge-shadow');
 
-        const pulseCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        pulseCircle.setAttribute('cx', x);
-        pulseCircle.setAttribute('cy', y);
-        pulseCircle.setAttribute('r', '20');
-        pulseCircle.setAttribute('fill', '#4ade80');
-        pulseCircle.setAttribute('class', 'pulse-dot');
+        const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        pulse.setAttribute('cx', x);
+        pulse.setAttribute('cy', y);
+        pulse.setAttribute('r', '22');
+        pulse.setAttribute('fill', '#4ade80');
+        pulse.setAttribute('class', idx === 0 ? 'active-badge-pulse' : 'hidden');
+        pulse.setAttribute('id', `pulse-${idx}`);
 
-        const startCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        startCircle.setAttribute('cx', x);
-        startCircle.setAttribute('cy', y);
-        startCircle.setAttribute('r', '15');
-        startCircle.setAttribute('fill', '#16a34a');
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', '17');
+        circle.setAttribute('fill', idx === 0 ? '#16a34a' : '#64748b');
+        circle.setAttribute('id', `circle-${idx}`);
 
         const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         text.setAttribute('x', x);
-        text.setAttribute('y', y + 5);
+        text.setAttribute('y', y + 6);
         text.setAttribute('text-anchor', 'middle');
-        text.setAttribute('font-size', '14');
+        text.setAttribute('font-size', '16');
         text.setAttribute('font-weight', 'bold');
         text.setAttribute('fill', '#ffffff');
         text.textContent = (idx + 1).toString();
 
-        group.appendChild(pulseCircle);
-        group.appendChild(startCircle);
-        group.appendChild(text);
-        svgGroup.appendChild(group);
+        g.appendChild(pulse);
+        g.appendChild(circle);
+        g.appendChild(text);
+        badgeLayer.appendChild(g);
       });
 
       speakLetter(letter.char);
+    }
+
+    function updateStepUI() {
+      currentStrokeNum.textContent = Math.min(currentStrokeIndex + 1, currentLetter ? currentLetter.strokes.length : 1);
+      
+      // Gesamt-Fortschritt
+      let totalPts = 0;
+      let hitPts = 0;
+      strokeCheckpoints.forEach(pts => {
+        totalPts += pts.length;
+        pts.forEach(p => { if (p.hit) hitPts++; });
+      });
+      const pct = totalPts > 0 ? Math.round((hitPts / totalPts) * 100) : 0;
+      progressBar.style.width = `${pct}%`;
+      percentLabel.textContent = `${pct}%`;
+
+      // Visuelle Marker für aktiven Strich aktualisieren
+      if (currentLetter) {
+        currentLetter.strokes.forEach((_, idx) => {
+          const pulse = document.getElementById(`pulse-${idx}`);
+          const circle = document.getElementById(`circle-${idx}`);
+          const arrow = document.getElementById(`arrow-${idx}`);
+          if (!pulse || !circle || !arrow) return;
+
+          if (idx === currentStrokeIndex) {
+            pulse.classList.remove('hidden');
+            circle.setAttribute('fill', '#16a34a');
+            arrow.setAttribute('stroke', '#0284c7');
+            arrow.setAttribute('marker-end', 'url(#arrow)');
+          } else if (idx < currentStrokeIndex) {
+            pulse.classList.add('hidden');
+            circle.setAttribute('fill', '#10b981'); // erledigt
+          } else {
+            pulse.classList.add('hidden');
+            circle.setAttribute('fill', '#94a3b8'); // inaktiv
+            arrow.setAttribute('stroke', '#cbd5e1');
+            arrow.setAttribute('marker-end', 'url(#arrow-inactive)');
+          }
+        });
+      }
+    }
+
+    function checkSuccess() {
+      if (completed) return;
+
+      // Prüfen, wie viele Checkpoints des aktuellen Strichs getroffen wurden
+      const activePts = strokeCheckpoints[currentStrokeIndex];
+      const hitCount = activePts.filter(p => p.hit).length;
+      const strokeCoverage = hitCount / activePts.length;
+
+      // Wenn mind. 75% des aktuellen Strichs abgefahren sind -> nächster Schritt
+      if (strokeCoverage >= 0.75) {
+        if (currentStrokeIndex < currentLetter.strokes.length - 1) {
+          currentStrokeIndex++;
+          updateStepUI();
+        } else {
+          // Buchstabe komplett erfolgreich beendet!
+          completed = true;
+          updateStepUI();
+          triggerSuccess();
+        }
+      }
+    }
+
+    function triggerSuccess() {
+      successBanner.classList.remove('hidden');
+      playCheerJingle();
+
+      // Fröhliches Konfetti
+      if (window.confetti) {
+        confetti({
+          particleCount: 80,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      }
+
+      speak("Super gemacht!");
+
+      // Nach 2,5 Sekunden automatisch zum nächsten Buchstaben
+      setTimeout(() => {
+        loadLetter(getRandomLetter());
+      }, 2600);
+    }
+
+    // Touch & Zeichen-Koordinaten (umgerechnet auf die 400x500 SVG-ViewBox)
+    function getCanvasCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const drawX = clientX - rect.left;
+      const drawY = clientY - rect.top;
+
+      // Mapping auf 400 x 500 Viewbox-Einheiten
+      const svgX = (drawX / rect.width) * 400;
+      const svgY = (drawY / rect.height) * 500;
+
+      return { drawX, drawY, svgX, svgY };
+    }
+
+    function startDraw(e) {
+      if (completed) return;
+      isDrawing = true;
+      const pos = getCanvasCoordinates(e);
+      lastX = pos.drawX;
+      lastY = pos.drawY;
+      testHit(pos.svgX, pos.svgY);
+    }
+
+    function draw(e) {
+      if (!isDrawing || completed) return;
+      e.preventDefault();
+      const pos = getCanvasCoordinates(e);
+
+      // Freihand-Pinsel zeichnen
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.drawX, pos.drawY);
+      ctx.strokeStyle = currentColor;
+      ctx.lineWidth = 32;
+      ctx.stroke();
+
+      lastX = pos.drawX;
+      lastY = pos.drawY;
+
+      testHit(pos.svgX, pos.svgY);
+    }
+
+    function stopDraw() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      checkSuccess();
+    }
+
+    // Checkpoint-Kollisionstest (Toleranz-Radius 38 Einheiten)
+    function testHit(x, y) {
+      if (!strokeCheckpoints[currentStrokeIndex]) return;
+      const radius = 38;
+      let changed = false;
+
+      strokeCheckpoints[currentStrokeIndex].forEach(pt => {
+        if (!pt.hit) {
+          const dist = Math.hypot(pt.x - x, pt.y - y);
+          if (dist < radius) {
+            pt.hit = true;
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        updateStepUI();
+      }
     }
 
     function getRandomLetter() {
@@ -222,57 +459,27 @@
     function clearCanvas() {
       const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
+      if (strokeCheckpoints[currentStrokeIndex]) {
+        strokeCheckpoints[currentStrokeIndex].forEach(p => p.hit = false);
+      }
+      updateStepUI();
     }
 
     function speakLetter(char) {
+      speak(char);
+    }
+
+    function speak(text) {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance(char);
+        const utter = new SpeechSynthesisUtterance(text);
         utter.lang = 'de-DE';
-        utter.rate = 0.8;
+        utter.rate = 0.85;
         window.speechSynthesis.speak(utter);
       }
     }
 
-    // Zeichen-Events
-    function getPointerPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: clientX - rect.left,
-        y: clientY - rect.top
-      };
-    }
-
-    function startDraw(e) {
-      isDrawing = true;
-      const pos = getPointerPos(e);
-      lastX = pos.x;
-      lastY = pos.y;
-    }
-
-    function draw(e) {
-      if (!isDrawing) return;
-      e.preventDefault();
-      const pos = getPointerPos(e);
-
-      ctx.beginPath();
-      ctx.moveTo(lastX, lastY);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth = 28;
-      ctx.stroke();
-
-      lastX = pos.x;
-      lastY = pos.y;
-    }
-
-    function stopDraw() {
-      isDrawing = false;
-    }
-
-    // Touch & Maus Listener
+    // Event-Listener
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     window.addEventListener('mouseup', stopDraw);
@@ -281,12 +488,11 @@
     canvas.addEventListener('touchmove', draw, { passive: false });
     window.addEventListener('touchend', stopDraw);
 
-    // Event Handler Buttons
     document.getElementById('nextBtn').addEventListener('click', () => loadLetter(getRandomLetter()));
     document.getElementById('clearBtn').addEventListener('click', clearCanvas);
     document.getElementById('speakBtn').addEventListener('click', () => currentLetter && speakLetter(currentLetter.char));
 
-    // Farbauswahl
+    // Stiftfarben-Wahl
     document.querySelectorAll('.color-pick').forEach(btn => {
       btn.addEventListener('click', (e) => {
         document.querySelectorAll('.color-pick').forEach(b => {
@@ -297,15 +503,11 @@
       });
     });
 
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-    });
+    window.addEventListener('resize', resizeCanvas);
 
-    // Initialisierung & Service Worker
     window.addEventListener('load', () => {
       resizeCanvas();
       loadLetter(getRandomLetter());
-
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js').catch(console.error);
       }
